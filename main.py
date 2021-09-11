@@ -1,6 +1,7 @@
 import sys
 import copy
 import re
+from pypinyin import pinyin, lazy_pinyin, Style
 
 
 class DFA:
@@ -18,7 +19,8 @@ class DFA:
             current_dict = state_event_dict
             length = len(keyword)
 
-            for index, char in enumerate(keyword):
+            for index, ch in enumerate(keyword):
+                char = lazy_pinyin(ch)[0]
                 if char not in current_dict:
                     next_dict = {"is_end": False}
                     current_dict[char] = next_dict
@@ -27,19 +29,18 @@ class DFA:
                     next_dict = current_dict[char]
                     current_dict = next_dict
 
-                if index == length-1:
-                    current_dict["is_end"] = True
+                if index == length - 1:
+                    current_dict["is_end"] = keyword
 
         return state_event_dict
 
     def match(self, content: str):
-
         match_list = []
         state_list = []
         temp_match_list = []
 
         for char_pos, char in enumerate(content):
-            temp_char = char.lower()
+            temp_char = lazy_pinyin(char.lower())[0]
             if char == '\n':
                 self.line += 1
             if temp_char in self.state_event_dict:
@@ -53,17 +54,17 @@ class DFA:
             for index, state in enumerate(state_list):
                 if temp_char in state:
                     state_list[index] = state[temp_char]
-                    temp_match_list[index]["match"] += temp_char
                     temp_match_list[index]["word"] += char
 
-                    if state[temp_char]["is_end"]:
+                    if state[temp_char]["is_end"] is not False:
+                        temp_match_list[index]["match"] += state[temp_char]["is_end"]
                         match_list.append(copy.deepcopy(temp_match_list[index]))
                         self.total += 1
 
                         if len(state[temp_char].keys()) == 1:
                             state_list.pop(index)
                             temp_match_list.pop(index)
-                elif re.match("[a-zA-Z\u4300-\u9fa5]", char, re.I) is None:
+                elif re.match("[a-zA-Z\u4300-\u9fa5]", char, re.I) is None and temp_match_list[index]["word"] != '':
                     temp_match_list[index]["word"] += char
 
                 else:
