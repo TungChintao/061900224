@@ -63,7 +63,7 @@ class DFA:
                         if len(state[temp_char].keys()) == 1:
                             state_list.pop(index)
                             temp_match_list.pop(index)
-                elif re.match("[a-zA-Z0-9\u4300-\u9fa5]", char, re.I) is None:
+                elif re.match("[a-zA-Z\u4300-\u9fa5]", char, re.I) is None:
                     temp_match_list[index]["word"] += char
 
                 else:
@@ -85,7 +85,14 @@ if __name__ == "__main__":
     content = f_content.read()
 
     dfa = DFA(keyword_list)
-    print(dfa.match(content))
+    ans = dfa.match(content)
+    f_ans = open(argv_list[3], 'w', encoding='utf-8', )
+    f_ans.write('Total: ' + str(dfa.total) + '\n')
+    for i in ans:
+        f_ans.write('Line'+str(i['Line'])+': '+'<' + str(i['match']) + '> '+str(i['word']) + '\n')
+    f_ans.close()
+
+
 
 
 
