@@ -1,4 +1,4 @@
-Total: 514
+Total: 516
 Line2: <邪教> 邪教
 Line3: <法轮功> 法lun功
 Line8: <fuck> Fuck
@@ -241,6 +241,7 @@ Line239: <法轮功> fa_lun_gong
 Line239: <邪教> 邪教
 Line239: <邪教> 邪教
 Line240: <邪教> 邪教
+Line242: <法轮功> fa_lun_gong
 Line242: <邪教> 邪教
 Line243: <邪教> 邪教
 Line244: <法轮功> fa_lun_gong
@@ -306,6 +307,7 @@ Line285: <法轮功> FaLG
 Line286: <法轮功> FaLG
 Line286: <邪教> 邪教
 Line286: <法轮功> FaLG
+Line287: <法轮功> 法轮g
 Line288: <邪教> 邪教
 Line289: <邪教> 邪教
 Line290: <邪教> 邪教
