@@ -14,17 +14,18 @@ def word_all_chinese(word):
     return True
 
 
+# 组合函数，用于构造不同敏感词组合
 def get_comb(word, py_word, sx_word, cur_list, new_keyword, lev):
     if lev == len(word):
         new_keyword.append(cur_list)
         # print(new_keyword)
         return
-    for i in range(3):
-        if i == 0:
+    for item in range(3):
+        if item == 0:
             get_comb(word, py_word, sx_word, cur_list + [word[lev]], new_keyword, lev + 1)
-        elif i == 1:
+        elif item == 1:
             get_comb(word, py_word, sx_word, cur_list + [py_word[lev]], new_keyword, lev + 1)
-        elif i == 2:
+        elif item == 2:
             get_comb(word, py_word, sx_word, cur_list + [sx_word[lev]], new_keyword, lev + 1)
     return
 
@@ -32,20 +33,20 @@ def get_comb(word, py_word, sx_word, cur_list, new_keyword, lev):
 class DFA:
 
     def __init__(self, keyword_list: list):
-        self.state_event_dict = self._generate_state_envent_dict(keyword_list)
+        self.state_event_dict = self._generate_state_event_dict(keyword_list)
         self.ass_even_dict = self._generate_ass_event_dict(keyword_list)
         self.total = 0
         self.line = 1
 
     # 构建主状态存储结构
     @staticmethod
-    def _generate_state_envent_dict(keyword_list: list) -> dict:
+    def _generate_state_event_dict(keyword_list: list) -> dict:
         state_event_dict = {}
 
         for keyword in keyword_list:
             if word_all_chinese(keyword):
-                py = lazy_pinyin(keyword)
-                sx = pinyin(keyword, style=Style.FIRST_LETTER)
+                py = lazy_pinyin(keyword)               # 拼音
+                sx = pinyin(keyword, style=Style.FIRST_LETTER)      # 缩写
                 py_word = [item for item in py]
                 sx_word = [item[0] for item in sx]
                 new_keyword = []
@@ -83,25 +84,24 @@ class DFA:
 
     # 构建辅助状态存储结构（偏旁转换）
     @staticmethod
-    def _generate_ass_event_dict(keyword_list: list):
+    def _generate_ass_event_dict(keyword_list: list) -> dict:
         ass_dict = {}
 
         pp = Pianpan()
 
         for keyword in keyword_list:
-            if '\u4e00' <= keyword <= '\u9fa5':
-                for char_word in keyword:
-
+            for char_word in keyword:
+                if '\u4e00' <= char_word <= '\u9fa5':
                     pianpan_char = pp.toPianpan(char_word)
                     current_dict = ass_dict
                     pianpan_len = len(pianpan_char)
-                    for index, c in enumerate(pianpan_char):
-                        if c not in current_dict:
+                    for index, word in enumerate(pianpan_char):
+                        if word not in current_dict:
                             next_dict = {'is_end': False}
-                            current_dict[c] = next_dict
+                            current_dict[word] = next_dict
                             current_dict = next_dict
                         else:
-                            next_dict = current_dict[c]
+                            next_dict = current_dict[word]
                             current_dict = next_dict
                         if index == pianpan_len - 1:
                             current_dict['is_end'] = lazy_pinyin(char_word)[0]
@@ -110,6 +110,7 @@ class DFA:
 
     # 状态匹配函数
     def match(self, content: str):
+
         match_list = []  # 匹配完成加入该列表
         state_list = []  # 主状态列表
         finish_flag = True  # 状态完成标志
@@ -117,33 +118,32 @@ class DFA:
         ass_str = ''
         ass_flag = False
         ass_str_flag = False
-        temp_match_list = []  # 匹配进度暂存列表
         temp_list = []  # 回溯状态列表
         temp_match_list = []  # 匹配进度暂存列表
+        temp_match_list_bk = []  # 回溯进度列表
 
-        type = 0  # 字符类型 0其他 1中文 2英文
         last_word = 0  # 已读入的最后一个字符 0其他 1中文 2英文
 
-        for char_pos, char in enumerate(content):
-            type = 0
-            if '\u4e00' <= char <= '\u9fa5':
-                type = 1
-            elif 'a' <= char <= 'z' or 'A' <= char <= 'Z':
-                type = 2
-            temp_char = lazy_pinyin(char.lower())[0]  # 小写处理，拼音化处理
-            if char == '\n':
+        for char_pos, char_str in enumerate(content):
+            current_type = 0  # 当前字符类型 0其他 1中文 2英文
+            if '\u4e00' <= char_str <= '\u9fa5':
+                current_type = 1
+            elif 'a' <= char_str <= 'z' or 'A' <= char_str <= 'Z':
+                current_type = 2
+            temp_char = lazy_pinyin(char_str.lower())[0]  # 小写处理，拼音化处理
+            if char_str == '\n':
                 self.line += 1
 
-            if char in self.ass_even_dict:
+            if char_str in self.ass_even_dict:
                 ass_dict = self.ass_even_dict
                 temp_list = []
                 ass_str = ''
 
-            if char in ass_dict:
+            if char_str in ass_dict:
                 ass_flag = True
-                ass = ass_dict[char]
+                ass = ass_dict[char_str]
                 ass_dict = ass
-                ass_str += char
+                ass_str += char_str
                 if ass_dict['is_end'] is not False:
                     ass_flag = False
                     ass_str_flag = True
@@ -184,8 +184,8 @@ class DFA:
                         ass_str_flag = False
                         ass_str = ''
                     else:
-                        temp_match_list[index]["word"] += char
-                        last_word = type
+                        temp_match_list[index]["word"] += char_str
+                        last_word = current_type
 
                     if state[temp_char]["is_end"] is not False:
                         if not finish_flag:
@@ -203,13 +203,10 @@ class DFA:
                         else:
                             finish_flag = False
 
-                elif last_word == 1 and re.match("[\u4e00-\u9fa5]", char, re.I) is None:
-                    temp_match_list[index]["word"] += char
-                elif last_word == 2 and re.match("[a-zA-Z\u4e00-\u9fa5]", char, re.I) is None:
-                    temp_match_list[index]["word"] += char
-
-                # elif re.match("[a-zA-Z\u4e00-\u9fa5]", char, re.I) is None and temp_match_list[index]["word"] != '':
-                #     temp_match_list[index]["word"] += char
+                elif last_word == 1 and re.match("[\u4e00-\u9fa5]", char_str, re.I) is None:
+                    temp_match_list[index]["word"] += char_str
+                elif last_word == 2 and re.match("[a-zA-Z\u4e00-\u9fa5]", char_str, re.I) is None:
+                    temp_match_list[index]["word"] += char_str
 
                 elif ass_flag:
                     pass
@@ -222,24 +219,46 @@ class DFA:
         return match_list
 
 
-if __name__ == "__main__":
-    argv_list = []
-    for i in sys.argv:
-        argv_list.append(i)
+def try_file_path(file_path):
+    try:
+        f = open(file_path, encoding='utf-8')
+    except Exception as msg:
+        print(msg)
+        exit(0)
+    else:
+        f.close()
 
+
+def run_dfa(argv_list):
     f_sensitive = open(argv_list[1], encoding='utf-8')
-    keyword_list = [i.strip('\n') for i in f_sensitive.readlines()]
+    keyword_list = [item.strip('\n') for item in f_sensitive.readlines()]
+    f_sensitive.close()
 
     f_content = open(argv_list[2], encoding='utf-8')
     content = f_content.read()
+    f_content.close()
 
     dfa = DFA(keyword_list)
     ans = dfa.match(content)
+
     # print(ans)
     # print(dfa.state_event_dict)
     # print(dfa.ass_even_dict)
+
     f_ans = open(argv_list[3], 'w', encoding='utf-8', )
     f_ans.write('Total: ' + str(dfa.total) + '\n')
-    for i in ans:
-        f_ans.write('Line' + str(i['Line']) + ': ' + '<' + str(i['match']) + '> ' + str(i['word']) + '\n')
+    for item in ans:
+        f_ans.write('Line' + str(item['Line']) + ': ' + '<' + str(item['match']) + '> ' + str(item['word']) + '\n')
     f_ans.close()
+
+
+if __name__ == "__main__":
+    arg_list = []
+    if len(sys.argv) != 4:
+        print('Wrong number of parameters!\nPlease re-enter!')
+        exit(0)
+    for i in sys.argv:
+        arg_list.append(i)
+    for i in range(1, 3):
+        try_file_path(arg_list[i])
+    run_dfa(arg_list)
